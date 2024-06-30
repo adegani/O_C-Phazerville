@@ -2,6 +2,7 @@
 #include "HSicons.h"
 #include "OC_ADC.h"
 #include "OC_digital_inputs.h"
+#include "OC_app_switcher.h"
 #include "OC_config.h"
 #include "OC_core.h"
 #include "OC_debug.h"
@@ -12,7 +13,7 @@
 #include "OC_apps.h"
 #include "util/util_math.h"
 #include "util/util_misc.h"
-#include "extern/dspinst.h"
+#include "src/extern/dspinst.h"
 #include <malloc.h>
 
 #ifdef ARDUINO_TEENSY41
@@ -73,7 +74,7 @@ static void debug_menu_ram() {
 #ifdef __IMXRT1062__
   auto sp = (char*) __builtin_frame_address(0);
   auto stack = sp - _ebss;
-  int heap = OC::CORE::FreeRam(); // _heap_end - __brkval;
+  int heap = CORE::FreeRam(); // _heap_end - __brkval;
 #else
   // T3.2
   char tos;
@@ -122,7 +123,7 @@ static void debug_menu_core() {
                   debug::cycles_to_us(DEBUG::UI_cycles.value()),
                   debug::cycles_to_us(DEBUG::UI_cycles.max_value()));
 
-#ifdef OC_UI_DEBUG
+#ifdef OC_DEBUG_UI
   y += 10;
   graphics.setPrintPos(2, y);
   graphics.printf("UI   !%lu #%lu", DEBUG::UI_queue_overflow, DEBUG::UI_event_count);
@@ -149,6 +150,20 @@ static void debug_menu_version()
 #else
   graphics.print(" PROD");
 #endif
+
+#ifdef IO_10V
+  graphics.drawStr(2, y, "IO_1OV"); y += 10;
+#endif
+#ifdef BUCHLA_SUPPORT
+  graphics.drawStr(2, y, "BUCHLA_SUPPORT"); y += 10;
+#endif
+#ifdef BUCHLA_cOC
+  graphics.drawStr(2, y, "BUCHLA_cOC"); y += 10;
+#endif
+#ifdef BUCHLA_4U
+  graphics.drawStr(2, y, "BUCHLA_4U"); y += 10;
+#endif
+
 #ifdef USB_SERIAL
   graphics.setPrintPos(2, 42);
   graphics.print("USB_SERIAL");
@@ -200,10 +215,10 @@ static void debug_menu_adc() {
   graphics.printf("C4 %5ld %5lu", ADC::value<ADC_CHANNEL_4>(), ADC::raw_value(ADC_CHANNEL_4));
 #endif
   const uint8_t trigz[] = {
-    OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_1>(),
-    OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_2>(),
-    OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_3>(),
-    OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>()
+    DigitalInputs::read_immediate<DIGITAL_INPUT_1>(),
+    DigitalInputs::read_immediate<DIGITAL_INPUT_2>(),
+    DigitalInputs::read_immediate<DIGITAL_INPUT_3>(),
+    DigitalInputs::read_immediate<DIGITAL_INPUT_4>()
   };
   graphics.setPrintPos(2, 52);
   graphics.printf("T1=%u T2=%u T3=%u T4=%u", trigz[0], trigz[1], trigz[2], trigz[3]);
@@ -224,10 +239,10 @@ static void debug_menu_adc_value() {
   graphics.printf("C4 %5ld C8 %5ld", ADC::value(ADC_CHANNEL_4), ADC::value(ADC_CHANNEL_8));
 
   const uint8_t trigz[] = {
-    OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_1>(),
-    OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_2>(),
-    OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_3>(),
-    OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>()
+    DigitalInputs::read_immediate<DIGITAL_INPUT_1>(),
+    DigitalInputs::read_immediate<DIGITAL_INPUT_2>(),
+    DigitalInputs::read_immediate<DIGITAL_INPUT_3>(),
+    DigitalInputs::read_immediate<DIGITAL_INPUT_4>()
   };
   graphics.setPrintPos(2, 52);
   graphics.printf("T1=%u T2=%u T3=%u T4=%u", trigz[0], trigz[1], trigz[2], trigz[3]);
@@ -258,6 +273,28 @@ static void debug_menu_pewpewpew() {
 }
 #endif
 
+#ifdef OC_DEBUG_ADC_STATS
+static void debug_menu_adc2() {
+  weegfx::coord_t y = 12;
+  for (int channel = ADC_CHANNEL_1; channel < ADC_CHANNEL_LAST; ++channel) {
+    auto &stats = ADC::get_channel_stats(static_cast<ADC_CHANNEL>(channel));
+    graphics.setPrintPos(2, y);
+    graphics.printf("CV%d %5d %5d", channel + 1, stats.min, stats.max);
+    y += 10;
+  }
+}
+#endif
+
+static void debug_menu_app() {
+  auto app = app_switcher.current_app();
+  if (app) {
+    graphics.print(app->name());
+    app->DrawDebugInfo();
+  } else {
+    graphics.print("?");
+  }
+}
+
 struct DebugMenu {
   const char *title;
   void (*display_fn)();
@@ -272,7 +309,10 @@ static const DebugMenu debug_menus[] = {
 #endif
   { " VERS", debug_menu_version },
   { " GFX", debug_menu_gfx },
-  { " ADC (raw)", debug_menu_adc },
+  { " ADC", debug_menu_adc },
+#ifdef OC_DEBUG_ADC_STATS
+  { " ADC min/max", debug_menu_adc2 },
+#endif
 #ifdef ARDUINO_TEENSY41
   { " ADC (value)", debug_menu_adc_value },
   { " AUDIO", debug_menu_audio },
@@ -298,6 +338,7 @@ static const DebugMenu debug_menus[] = {
 #ifdef ASR_DEBUG  
   { " ASR", ASR_debug },
 #endif // ASR_DEBUG
+  { " ", debug_menu_app },
 #ifdef PEWPEWPEW
   { " ", debug_menu_pewpewpew },
 #endif
@@ -310,12 +351,12 @@ void Ui::DebugStats() {
   bool exit_loop = false;
   uint32_t loopcount = 0;
   while (!exit_loop) {
-    OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::LOOP_cycles);
+    OC_DEBUG_PROFILE_SCOPE(DEBUG::LOOP_cycles);
     // Run current app
-    if (OC::CORE::app_loop_enabled)
-      OC::apps::current_app->loop();
+    if (CORE::app_loop_enabled)
+      app_switcher.current_app()->DispatchLoop();
 
-    OC::CORE::FlushTasks();
+    CORE::FlushTasks();
 
     const auto &current_menu = debug_menus[current_menu_index];
 
@@ -340,7 +381,7 @@ void Ui::DebugStats() {
     CONSTRAIN(current_menu_index, 0, (int)ARRAY_SIZE(debug_menus) - 1);
 
     ++loopcount;
-    OC_DEBUG_RESET_CYCLES(loopcount, 0x1000000, OC::DEBUG::LOOP_cycles);
+    OC_DEBUG_RESET_CYCLES(loopcount, 0x1000000, DEBUG::LOOP_cycles);
     //delay(1);
   }
 
