@@ -11,6 +11,7 @@
 
 #include <vector>
 #include "OC_config.h"
+#include "OC_io.h"
 #include "HSMIDI.h"
 #include "HSUtils.h"
 #include "OC_DAC.h"
@@ -546,37 +547,8 @@ struct IOFrame {
     }
 
     // --- Hard IO ---
-    void Load();
-
-    void Send() {
-        const DAC_CHANNEL chan[DAC_CHANNEL_COUNT] = {
-          DAC_CHANNEL_A, DAC_CHANNEL_B, DAC_CHANNEL_C, DAC_CHANNEL_D,
-#ifdef ARDUINO_TEENSY41
-          DAC_CHANNEL_E, DAC_CHANNEL_F, DAC_CHANNEL_G, DAC_CHANNEL_H,
-#endif
-        };
-
-        for (int i = 0; i < DAC_CHANNEL_COUNT; ++i) {
-          const int target = outputs_target[i] << EXTRA_PRECISION;
-          if (output_slew[i]) {
-            int diff = target - outputs[i];
-            int delta = 1;
-            if (output_slew[i] <= 50)
-              delta += 250 - 4*output_slew[i];
-            else
-              delta += 100 - output_slew[i];
-            CONSTRAIN(delta, 0, abs(diff));
-            if (diff < 0) delta = -delta;
-            outputs[i] += delta;
-          } else
-            outputs[i] = target;
-
-          OC::DAC::set_pitch_scaled(chan[i], outputs[i] >> EXTRA_PRECISION, 0);
-        }
-        // oh no, this is certainly broken now...
-        if (autoMIDIOut) MIDIState.Send(outputs);
-    }
-
+    void Load(OC::IOFrame *ioframe);
+    void Send(OC::IOFrame *ioframe);
 };
 
 extern IOFrame frame;
