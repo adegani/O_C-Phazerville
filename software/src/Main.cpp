@@ -211,7 +211,7 @@ void setup() {
   #endif
 
   // initialize LittleFS for config files
-  PhzConfig::setup();
+  PhzConfig::Init();
 
   // USB Host support for both 4.0 and 4.1
   usbHostMIDI.begin();
@@ -315,6 +315,9 @@ void FASTRUN loop() {
 
     if (ui.ticks() - last_redraw_time > REDRAW_TIMEOUT_MS)
       MENU_REDRAW = 1;
+
+    // handle MTP Disk requests
+    MTP.loop();
 
     static size_t cap_idx = 0;
     static elapsedMicros cap_send_time = 0;

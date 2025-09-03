@@ -23,14 +23,22 @@ static constexpr uint32_t diskSize = 1024 * 512;
 static constexpr uint32_t HEADER_SIZE = 12;
 
 FLASHMEM
-void setup()
+void Init()
 {
+  MTP.begin();
+  if (SDcard_Ready) {
+    MTP.addFilesystem(SD, "SD_Card");
+    SERIAL_PRINTLN("SD card available for preset storage");
+    //listFiles(SD);
+  }
+
   // This mounts or creates a LittleFS drive in Teensy PCB Flash.
   if (!myfs.begin(diskSize)) {
     SERIAL_PRINTLN("LittleFS unavailable!! Settings WILL NOT BE SAVED!");
     return;
   }
   SERIAL_PRINTLN("LittleFS initialized.");
+  MTP.addFilesystem(myfs, "Internal_LFS");
 
   /*
   if (myfs.mediaPresent()) {
@@ -38,11 +46,6 @@ void setup()
     //load_config();
   }
   */
-
-  if (SDcard_Ready) {
-    SERIAL_PRINTLN("SD card available for preset storage");
-    //listFiles(SD);
-  }
 }
 
 void clear_config() {
