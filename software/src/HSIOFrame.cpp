@@ -431,6 +431,28 @@ void HS::IOFrame::Send(OC::IOFrame *ioframe) {
     };
     for (int i = 0; i < DAC_CHANNEL_COUNT; ++i) {
       const int target = outputs_target[i] << EXTRA_PRECISION;
+
+      /* envelope output! */
+      if (output_slew[i] < 0) {
+        uint8_t gate_state = 0;
+        const bool outgate_high = (outputs_target[i] > GATE_THRESHOLD);
+        const bool outgate_rising = outgate_high && ((outputs_target[i] - output_diff[i]) < GATE_THRESHOLD);
+        const bool outgate_falling = !outgate_high && ((outputs_target[i] - output_diff[i]) > GATE_THRESHOLD);
+
+        if (outgate_rising)
+          gate_state |= peaks::CONTROL_GATE_RISING;
+
+        if (outgate_high)
+          gate_state |= peaks::CONTROL_GATE;
+        else if (outgate_falling)
+          gate_state |= peaks::CONTROL_GATE_FALLING;
+
+        const int value = GetEnvelope(i).ProcessSingleSample(gate_state); // 0 to 32767
+        ioframe->outputs.set_pitch_value(chan[i], Proportion(value, 32767, HEMISPHERE_MAX_CV));
+
+        continue;
+      }
+
       if (output_slew[i]) {
         int diff = target - outputs[i];
         int delta = 1;
