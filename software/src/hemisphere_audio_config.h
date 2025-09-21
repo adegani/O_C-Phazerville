@@ -10,6 +10,7 @@
 #include "audio_applets/MidSideApplet.h"
 #include "audio_applets/OscApplet.h"
 #include "audio_applets/PassthruApplet.h"
+#include "audio_applets/TuneTrackerApplet.h"
 #include "audio_applets/UpsampledApplet.h"
 #include "audio_applets/VCAApplet.h"
 #include "audio_applets/WAVPlayerApplet.h"
@@ -35,7 +36,8 @@ DMAMEM std::tuple<
   VcaApplet<MONO>,
   ReverbApplet,
   BungverbApplet,
-  UpsampledApplet<MONO>>
+  UpsampledApplet<MONO>,
+  TuneTrackerApplet<MONO>>
   mono_processors_pool[2][NUM_SLOTS - 1];
 DMAMEM std::tuple<
   PassthruApplet<STEREO>,
@@ -48,7 +50,8 @@ DMAMEM std::tuple<
   VcaApplet<STEREO>,
   FilterFolderApplet<STEREO>,
   WavPlayerApplet<STEREO>,
-  UpsampledApplet<STEREO>>
+  UpsampledApplet<STEREO>,
+  TuneTrackerApplet<STEREO>>
   stereo_processors_pool[NUM_SLOTS - 1];
 
 // Helper to extract the tuple type from an array... thanks ChatGPT...

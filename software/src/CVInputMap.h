@@ -20,11 +20,21 @@ struct CVInputMap {
     return 10 * attenuversion * abs(attenuversion) / 36;
   }
   int RawIn() {
-    return source <= ADC_CHANNEL_LAST
+    // return source <= ADC_CHANNEL_LAST
+    //   ? frame.inputs[source - 1]
+    //   : (source - ADC_CHANNEL_LAST <= DAC_CHANNEL_LAST)
+    //     ? frame.outputs[source - 1 - ADC_CHANNEL_LAST]
+    //     : frame.MIDIState.mapping[source - ADC_CHANNEL_LAST - DAC_CHANNEL_LAST - 1].output;
+
+    // I think this is probably the wrong way to implement RawIn() for VACV channels... need to figure this out ASAP
+      return source <= ADC_CHANNEL_LAST
       ? frame.inputs[source - 1]
       : (source - ADC_CHANNEL_LAST <= DAC_CHANNEL_LAST)
         ? frame.ViewOut(source - 1 - ADC_CHANNEL_LAST)
-        : frame.MIDIState.mapping[source - ADC_CHANNEL_LAST - DAC_CHANNEL_LAST - 1].output;
+        : ((source - ADC_CHANNEL_LAST - DAC_CHANNEL_LAST) >= 1
+            && (source - ADC_CHANNEL_LAST - DAC_CHANNEL_LAST) <= VACV_CHANNEL_COUNT)
+            ? VACVToRaw(source - ADC_CHANNEL_LAST - DAC_CHANNEL_LAST - 1)
+            : frame.MIDIState.mapping[source - ADC_CHANNEL_LAST - DAC_CHANNEL_LAST - VACV_CHANNEL_COUNT - 1].output;
   }
 
   int In(int default_value = 0) {
@@ -34,8 +44,22 @@ struct CVInputMap {
 
   float InF(float default_value = 0.0f) {
     if (!source) return default_value;
+  //   if (prefer_vacv_direct && IsVACVSource(source)) {
+  //     const int ch0 = VACVIndex0FromSource(source);
+  //     float n01 = VirtualAudioCV::read(ch0);             // 0..1
+  //   return 0.001f * Atten() * n01;                     // apply attenuverting here
+  // }
     return 0.001f * Atten() * static_cast<float>(RawIn())
       / static_cast<float>((source <= ADC_CHANNEL_LAST)?HEMISPHERE_MAX_INPUT_CV:HEMISPHERE_MAX_CV);
+  }
+
+  int VACVToRaw(int index) {
+    float n   = VirtualAudioCV::read(index);           // 0..1
+    float v   = -3.0f + n * 9.0f;                    // volts
+    int   raw = (v >= 0.f)
+                ? (int)(v * 1536.f + 0.5f)
+                : (int)(v * 1536.f - 0.5f);          // signed rounding
+    return raw;
   }
 
   int SemitoneIn(int default_value = 0) {
@@ -57,6 +81,14 @@ struct CVInputMap {
     source = x;
   }
 
+  // VACV helper function to achieve correct scaling. Checks for and returns VACV source if it exists
+  int GetVACVSource(int source) {
+    if (source >= (ADC_CHANNEL_LAST + DAC_CHANNEL_LAST + 1) && source <= (ADC_CHANNEL_LAST + DAC_CHANNEL_LAST + VACV_CHANNEL_COUNT)) {
+      return source - (ADC_CHANNEL_LAST + DAC_CHANNEL_LAST + 1);
+    }
+    return 0;
+  }
+
   char const* InputName() const {
     return OC::Strings::cv_input_names_none[source];
   }
@@ -75,6 +107,7 @@ struct CVInputMap {
     source = data & 0xFF;
     attenuversion = extract_value<int8_t>(data >> 8);
   }
+
 };
 
 // Let's PackingUtils know this is Packable as is.
@@ -89,6 +122,7 @@ struct DigitalInputMap {
     DIGITAL_INPUT,
     CV_INPUT,
     CV_OUTPUT,
+    VIRTUAL_AUDIO_CV,
     MIDI_MAP,
   };
 
@@ -124,6 +158,8 @@ struct DigitalInputMap {
         //return frame.inputs[cv_input_index()] > GATE_THRESHOLD;
       case CV_OUTPUT:
         return frame.ViewOut(cv_output_index()) > GATE_THRESHOLD;
+      case VIRTUAL_AUDIO_CV:
+        return static_cast<int>(VirtualAudioCV::read(virtual_audio_cv_index()) * static_cast<float>(HEMISPHERE_MAX_INPUT_CV) + 0.5f) > GATE_THRESHOLD;
       case MIDI_MAP:
         return frame.MIDIState.mapping[midi_map_index()].output > GATE_THRESHOLD;
       case NONE:
@@ -153,6 +189,8 @@ struct DigitalInputMap {
         return PARAM_MAP_ICONS + (1 + cv_input_index()) * 8;
       case CV_OUTPUT:
         return PARAM_MAP_ICONS + (1 + ADC_CHANNEL_LAST + cv_output_index()) * 8;
+      case VIRTUAL_AUDIO_CV:
+        return PARAM_MAP_ICONS + (1 + ADC_CHANNEL_LAST + DAC_CHANNEL_LAST + virtual_audio_cv_index()) * 8;
       case MIDI_MAP:
         return PhzIcons::midiIn;
       case NONE:
@@ -193,6 +231,9 @@ private:
         if (source < 1 + OC::DIGITAL_INPUT_LAST + ADC_CHANNEL_LAST + DAC_CHANNEL_LAST)
           return CV_OUTPUT;
 
+        if (source < 1 + OC::DIGITAL_INPUT_LAST + ADC_CHANNEL_LAST + DAC_CHANNEL_LAST + VACV_CHANNEL_COUNT)
+          return VIRTUAL_AUDIO_CV;
+
         return MIDI_MAP;
       }
     }
@@ -207,8 +248,12 @@ private:
   inline int8_t cv_output_index() const {
     return source - 1 - OC::DIGITAL_INPUT_LAST - ADC_CHANNEL_LAST;
   }
-  inline int8_t midi_map_index() const {
+  inline int8_t virtual_audio_cv_index() const{
     return source - 1 - OC::DIGITAL_INPUT_LAST - ADC_CHANNEL_LAST - DAC_CHANNEL_LAST;
+  }
+  // VACV channel count will be static so we can use that here
+  inline int8_t midi_map_index() const {
+    return source - 1 - OC::DIGITAL_INPUT_LAST - ADC_CHANNEL_LAST - DAC_CHANNEL_LAST - VACV_CHANNEL_COUNT;
   }
 };
 
