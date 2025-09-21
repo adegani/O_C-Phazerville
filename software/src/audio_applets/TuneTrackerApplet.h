@@ -36,7 +36,7 @@ public:
     // Connect input to pitch analyzer (assuming mono input for pitch tracking)
     for (int i = 0; i < Channels; i++) {
         // using the passthru as our input
-        in_conns[i].connect(passthru, i, note_freqs[i], 0);
+        PatchCable(passthru, i, note_freqs[i], 0);
         note_freqs[i].begin(0.14, 7000); // initializes the pitch tracking algo. threshold 0.1-0.2 for optimal error rates
     }
   }
@@ -182,8 +182,6 @@ private:
   AudioPassthrough<Channels> passthru;
 
   std::array<SafeNoteFrequencyAnalyzer, Channels> note_freqs;
-  // change connections to pointers we control
-  std::array<AudioConnection, Channels> in_conns;
 
   float last_freq = 0.0f;
   bool freq_available = false;
