@@ -31,8 +31,7 @@ struct CVInputMap {
       ? frame.inputs[source - 1]
       : (source - ADC_CHANNEL_LAST <= DAC_CHANNEL_LAST)
         ? frame.ViewOut(source - 1 - ADC_CHANNEL_LAST)
-        : ((source - ADC_CHANNEL_LAST - DAC_CHANNEL_LAST) >= 1
-            && (source - ADC_CHANNEL_LAST - DAC_CHANNEL_LAST) <= VACV_CHANNEL_COUNT)
+        : (source - ADC_CHANNEL_LAST - DAC_CHANNEL_LAST <= VACV_CHANNEL_COUNT)
             ? VACVToRaw(source - ADC_CHANNEL_LAST - DAC_CHANNEL_LAST - 1)
             : frame.MIDIState.mapping[source - ADC_CHANNEL_LAST - DAC_CHANNEL_LAST - VACV_CHANNEL_COUNT - 1].output;
   }

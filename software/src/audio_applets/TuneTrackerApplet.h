@@ -3,11 +3,9 @@
 #include "HSUtils.h"
 #include "HemisphereAudioApplet.h"
 #include "Audio/AudioPassthrough.h"
-#include "Audio/InterpolatingStream.h"
 #include "Audio/SafeNoteFrequencyAnalyzer.h"
 #include "Audio/VACVMap.h"
 #include <Audio.h>
-
 
 // index being which virtual audio input (1-8), value being the CV
 inline void WriteVirtualAudioCV(uint8_t index, float value01) {
@@ -20,12 +18,9 @@ public:
   const char* applet_name() override {
     return "TuneTrackr";
   }
-  
-  void Start() override {
-    cv_stream.Method(INTERPOLATION_LINEAR);
-    cv_stream.Acquire();
 
-    //handle VACV assignment and ownership
+  void Start() override {
+    // handle VACV assignment and ownership
     if (!vacv_owner_id) vacv_owner_id = VACVRegistry::I().registerOwner();
     pitch_cv_selection.AttachOwner(vacv_owner_id);
     pitch_env_selection.AttachOwner(vacv_owner_id);
@@ -54,9 +49,11 @@ public:
     // Release VA claims and ID so future applets can reuse channels
     pitch_cv_selection.DetachOwner();
     pitch_env_selection.DetachOwner();
-    if (vacv_owner_id) { VACVRegistry::I().unregisterOwner(vacv_owner_id); vacv_owner_id = 0; }
+    if (vacv_owner_id) {
+      VACVRegistry::I().unregisterOwner(vacv_owner_id);
+      vacv_owner_id = 0;
+    }
 
-    cv_stream.Release();
     AllowRestart();
   }
   void Controller() override {
@@ -70,19 +67,20 @@ public:
     float freq = note_freqs[0].read();
       // if we have a new frequency, convert to CV and write to Virtual Audio CV output
     if (freq && last_freq != freq) {
-        last_freq = freq;
-        int_part = (int)last_freq;
-        frac_part = (int)((last_freq - int_part) * 100);
-        // convert frequency to CV. O_C C0 starts at -2 volts, so -2-6V should be expected for TuneTracker V/Oct range.
-        volts = constrain(-2.0f + log2f(freq / 16.35159783f), -3.0f, 6.0f);  // C0 freq is 16.35159783f
-        freq_available = freq > 0.0f;
-        pitch_cv_selection.WriteVolts(volts, -3.0f, 6.0f);
-      }
-      
+      last_freq = freq;
+      int_part = (int)last_freq;
+      frac_part = (int)((last_freq - int_part) * 100);
+      // convert frequency to CV. O_C C0 starts at -2 volts, so -2-6V should be expected for TuneTracker V/Oct range.
+      volts = constrain(-2.0f + log2f(freq / 16.35159783f), -3.0f, 6.0f); // C0 freq is 16.35159783f
+      freq_available = freq > 0.0f;
+      pitch_cv_selection.WriteVolts(volts, -3.0f, 6.0f);
+      // TODO:
+      //Out(0, volts * (12 << 7));
+    } else {
       // should we do anything when a pitch is not being read?
-      else { freq_available = false;
+      freq_available = false;
     }
-  } 
+  }
   void View() override {
     // GUI here
     const int label_x = 1;
@@ -101,9 +99,16 @@ public:
     float av = neg ? -v : v;
     int vi = (int)av;
     int vf = (int)((av - vi) * 100.0f + 0.5f);
-    if (vf == 100) { vi += 1; vf = 0; }
-    if (neg) { gfxPrint(label_x, 25, "-"); gfxPrint(vi); }
-    else { gfxPrint(label_x, 25, vi); }
+    if (vf == 100) {
+      vi += 1;
+      vf = 0;
+    }
+    if (neg) {
+      gfxPrint(label_x, 25, "-");
+      gfxPrint(vi);
+    } else {
+      gfxPrint(label_x, 25, vi);
+    }
     gfxPrint(".");
     if (vf < 10) gfxPrint("0");
     gfxPrint(vf);
@@ -116,18 +121,20 @@ public:
     float prob = note_freqs[0].probability();
     int p_int = (int)prob;
     int p_frac = (int)((prob - p_int) * 100.0f + 0.5f);
-    if (p_frac == 100) { p_int += 1; p_frac = 0; }
+    if (p_frac == 100) {
+      p_int += 1;
+      p_frac = 0;
+    }
     gfxPrint(label_x, 45, p_int);
     gfxPrint(".");
     if (p_frac < 10) gfxPrint("0");
-    gfxPrint(p_frac);   
+    gfxPrint(p_frac);
 
     gfxDisplayInputMapEditor(); // this bookends any GUI with editable CV inputs
-
-   }
+  }
   uint64_t OnDataRequest() override {
     return 0;
-    }
+  }
   void OnDataReceive(uint64_t data) override {}
   void OnButtonPress() override {
     if (CheckEditInputMapPress(
@@ -146,10 +153,10 @@ public:
     if (EditSelectedInputMap(direction)) return;
     switch (cursor) {
       case PITCH_CV_OUT:
-        pitch_cv_selection.ChangeSource(direction); 
+        pitch_cv_selection.ChangeSource(direction);
         break;
       case PITCH_ENV_OUT:
-        pitch_env_selection.ChangeSource(direction); 
+        pitch_env_selection.ChangeSource(direction);
         break;
     }
   }
@@ -175,10 +182,9 @@ private:
 
   int cursor = 0;
   // correct this later to reflect some enum or list of available Virtual Audio CV ins
-  VACVMap pitch_cv_selection{1}; //VA1 
+  VACVMap pitch_cv_selection{1}; //VA1
   VACVMap pitch_env_selection{2}; //VA2
 
-  InterpolatingStream<> cv_stream;
   AudioPassthrough<Channels> passthru;
 
   std::array<SafeNoteFrequencyAnalyzer, Channels> note_freqs;
@@ -192,5 +198,4 @@ private:
 
   uint16_t vacv_owner_id = 0;
   float volts = 0.0f;
-
 };
