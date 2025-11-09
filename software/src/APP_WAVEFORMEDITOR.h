@@ -366,7 +366,7 @@ private:
     }
 };
 
-WaveformEditor WaveformEditor_instance;
+DMAMEM WaveformEditor WaveformEditor_instance;
 
 // App stubs
 void WaveformEditor_init() {

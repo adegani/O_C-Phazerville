@@ -457,7 +457,7 @@ public:
   SmoothedValue<int32_t, kCvSmoothing> cv4;
 };
 
-QuadByteBeats bytebeatgen;
+DMAMEM QuadByteBeats bytebeatgen;
 
 void BYTEBEATGEN_init() {
   bytebeatgen.Init();

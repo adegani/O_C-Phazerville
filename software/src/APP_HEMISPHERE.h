@@ -1597,7 +1597,7 @@ SETTINGS_DECLARE(HemispherePreset, HEMISPHERE_SETTINGS_COUNT) {
 };
 #endif
 
-HemisphereManager manager;
+DMAMEM HemisphereManager manager;
 
 void ReceiveManagerSysEx() {
 #ifdef __IMXRT1062__

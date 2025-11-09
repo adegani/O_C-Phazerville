@@ -618,8 +618,7 @@ SETTINGS_DECLARE(ScenesAppPreset, SCENES_SETTING_LAST) {
 };
 #endif
 
-
-ScenesApp ScenesApp_instance;
+DMAMEM ScenesApp ScenesApp_instance;
 
 // App stubs
 void ScenesApp_init() { ScenesApp_instance.BaseStart(); }

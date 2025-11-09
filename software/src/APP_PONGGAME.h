@@ -318,7 +318,7 @@ private:
     bool twoplayermode = false;
 };
 
-Pong pong_instance;
+DMAMEM Pong pong_instance;
 
 // App stubs
 void PONGGAME_init() {

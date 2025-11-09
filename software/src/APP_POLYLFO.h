@@ -263,7 +263,8 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
 #endif
  };
 
-PolyLfo poly_lfo;
+DMAMEM PolyLfo poly_lfo;
+
 struct {
 
   POLYLFO_SETTINGS left_edit_mode;

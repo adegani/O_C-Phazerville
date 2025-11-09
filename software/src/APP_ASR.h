@@ -810,8 +810,8 @@ public:
   OC::ScaleEditor<ASRApp> scale_editor;
 };
 
-ASRState asr_state;
-ASRApp asr;
+DMAMEM ASRState asr_state;
+DMAMEM ASRApp asr;
 
 void ASR_init() {
 

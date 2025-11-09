@@ -803,8 +803,7 @@ SETTINGS_DECLARE(Calibr8orPreset, CAL8_SETTING_LAST) {
 #endif
 };
 
-
-Calibr8or Calibr8or_instance;
+DMAMEM Calibr8or Calibr8or_instance;
 
 // App stubs
 void Calibr8or_init() { Calibr8or_instance.BaseStart(); }

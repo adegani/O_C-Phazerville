@@ -288,7 +288,7 @@ public:
   SmoothedValue<int32_t, kCvSmoothing> cv4;
 };
 
-QuadBouncingBalls bbgen;
+DMAMEM QuadBouncingBalls bbgen;
 
 void BBGEN_init() {
   bbgen.Init();

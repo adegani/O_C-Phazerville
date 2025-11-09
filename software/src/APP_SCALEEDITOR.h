@@ -342,7 +342,7 @@ private:
     }
 };
 
-ScaleEditor scale_editor_instance;
+DMAMEM ScaleEditor scale_editor_instance;
 
 // App stubs
 void SCALEEDITOR_init() {

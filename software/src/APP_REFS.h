@@ -340,7 +340,7 @@ private:
   elapsedMillis milliseconds_since_last_freq_;
 };
 
-ReferencesApp references_app;
+DMAMEM ReferencesApp references_app;
 
 // App stubs
 void REFS_init() {

@@ -1110,7 +1110,7 @@ SETTINGS_DECLARE(CaptainMIDI, MIDI_SETTING_COUNT) {
 };
 #endif
 
-CaptainMIDI captain_midi_instance;
+DMAMEM CaptainMIDI captain_midi_instance;
 
 ////////////////////////////////////////////////////////////////////////////////
 //// App Functions

@@ -862,7 +862,7 @@ public:
   SmoothedValue<int32_t, kCvSmoothing> cv4;
 };
 
-QuadEnvelopeGenerator envgen;
+DMAMEM QuadEnvelopeGenerator envgen;
 
 void ENVGEN_init() {
   envgen.Init();

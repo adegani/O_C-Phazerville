@@ -1619,7 +1619,7 @@ private:
     }
 };
 
-QuadAppletManager quad_manager;
+DMAMEM QuadAppletManager quad_manager;
 
 void QuadrantSysExHandler() {
   // TODO
