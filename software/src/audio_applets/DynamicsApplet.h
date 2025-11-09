@@ -114,6 +114,7 @@ public:
   }
   void OnDataReceive(uint64_t data) {
     UnpackPackables(data, gate_threshold, comp_threshold, limit_threshold, makeupgain);
+    SetParams();
   }
 
   AudioStream* InputStream() override {
