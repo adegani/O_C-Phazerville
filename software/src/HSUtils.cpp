@@ -197,9 +197,11 @@ namespace HS {
       switch(midi_edit){
         case 1: // chan
           map.AdjustChannel(dir);
+          frame.MIDIState.UpdateMidiChannelFilter();
           break;
         case 2: // mode
           map.AdjustFunction(dir);
+          frame.MIDIState.UpdateMidiChannelFilter();
           break;
         case 3: // voice (poly only)
           map.AdjustVoice(dir);
