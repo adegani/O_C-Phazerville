@@ -263,17 +263,23 @@ public:
     uint64_t OnDataRequest() {
         uint64_t data = 0;
         Pack(data, PackLocation {0,8}, scale);
-        // Pack(data, PackLocation {8,8}, scale[1]);
-        Pack(data, PackLocation {16,4}, root);
-        // Pack(data, PackLocation {20,4}, root[1]);
+        Pack(data, PackLocation {8,4}, octave+5);
+        Pack(data, PackLocation {12,4}, voltage_maj);
+        Pack(data, PackLocation {16,4}, voltage_min);
+        Pack(data, PackLocation {20,4}, voltage_dim);
+        Pack(data, PackLocation {24,4}, voltage_no_match);
+        Pack(data, PackLocation {28,4}, root);
         return data;
     }
 
     void OnDataReceive(uint64_t data) {
         scale = Unpack(data, PackLocation {0,8});
-        // scale[1] = Unpack(data, PackLocation {8,8});
-        root = Unpack(data, PackLocation {16,4});
-        // root[1] = Unpack(data, PackLocation {20,4});
+        octave = Unpack(data, PackLocation {8,4})-5;
+        voltage_maj = Unpack(data, PackLocation {12,4});
+        voltage_min = Unpack(data, PackLocation {16,4});
+        voltage_dim = Unpack(data, PackLocation {20,4});
+        voltage_no_match = Unpack(data, PackLocation {24,4});
+        root = Unpack(data, PackLocation {28,4});
 
         root = constrain(root, 0, 11);
         QuantizerConfigure(0, scale);
