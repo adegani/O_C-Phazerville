@@ -206,8 +206,8 @@ public:
             int semitone = (quantized / 128) % 12;
             int output_voltage = determineInterval(scale, root, semitone);
             
-            Out(0, output_voltage);
-            last_note[0] = quantized;
+            Out(0, quantized);
+            Out(1, output_voltage);
             last_note = quantized;
         }
     }
@@ -277,12 +277,12 @@ public:
 protected:
   void SetHelp() {
     //                    "-------" <-- Label size guide
-    help[HELP_DIGITAL1] = "Clock 1";
-    help[HELP_DIGITAL2] = "Clock 2";
-    help[HELP_CV1]      = "CV Ch1";
-    help[HELP_CV2]      = "CV Ch2";
-    help[HELP_OUT1]     = "Pitch 1";
-    help[HELP_OUT2]     = "Pitch 2";
+    help[HELP_DIGITAL1] = "Clock";
+    help[HELP_DIGITAL2] = "-";
+    help[HELP_CV1]      = "Pitch";
+    help[HELP_CV2]      = "-";
+    help[HELP_OUT1]     = "Note";
+    help[HELP_OUT2]     = "Scale";
     help[HELP_EXTRA1] = "";
     help[HELP_EXTRA2] = "";
     //                  "---------------------" <-- Extra text size guide
