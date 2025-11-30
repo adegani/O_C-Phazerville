@@ -201,12 +201,13 @@ public:
         }
         
         if (continuous || EndOfADCLag(0)) {
+            octaveCv = Proportion(In(1), HEMISPHERE_MAX_INPUT_CV, 7);
             int32_t pitch = In(0);
             int32_t quantized = Quantize(0, pitch, root << 7, 0);
             int semitone = (quantized / 128) % 12;
             int output_voltage = determineInterval(scale, root, semitone);
             
-            Out(0, quantized);
+            Out(0, quantized + (ONE_VOLT*(octave+octaveCv)));
             Out(1, output_voltage);
             last_note = quantized;
         }
@@ -220,7 +221,7 @@ public:
 
     void OnEncoderMove(int direction) {
         if (!EditMode()) {
-            MoveCursor(cursor, direction, 5);
+            MoveCursor(cursor, direction, 6);
             return;
         }
 
@@ -230,25 +231,29 @@ public:
         } else if (cursor == 1) {
            // Scale selection
             scale += direction;
-            // only allow Ionian and Aeolian scales
-            scale = constrain(scale, 6, 11);
+            // only allow Semitone, and Ionian to Aeolian scales
+            scale = constrain(scale, 5, 11);
             // scale = constrain(scale, 0, OC::Scales::NUM_SCALES - 1);
             QuantizerConfigure(0, scale);
             continuous = 1; // Re-enable continuous mode when scale is changed
         } else if (cursor == 2) {
+            // change octave
+            octave += direction;
+            octave = constrain(octave, -5, 5);
+        } else if (cursor == 3) {
             // change voltage_maj value
             voltage_maj += direction;
             voltage_maj = constrain(voltage_maj, 1, 10);
             code_maj = voltageToCode(voltage_maj);
-        } else if (cursor == 3) {
+        } else if (cursor == 4) {
             voltage_min += direction;
             voltage_min = constrain(voltage_min, 1, 10);
             code_min = voltageToCode(voltage_min);
-        } else if (cursor == 4) {
+        } else if (cursor == 5) {
             voltage_dim += direction;
             voltage_dim = constrain(voltage_dim, 1, 10);
             code_dim = voltageToCode(voltage_dim);
-        } else if (cursor == 5) {
+        } else if (cursor == 6) {
             voltage_no_match += direction;
             voltage_no_match = constrain(voltage_no_match, 1, 10);
             code_no_match = voltageToCode(voltage_no_match);
@@ -280,7 +285,7 @@ protected:
     help[HELP_DIGITAL1] = "Clock";
     help[HELP_DIGITAL2] = "-";
     help[HELP_CV1]      = "Pitch";
-    help[HELP_CV2]      = "-";
+    help[HELP_CV2]      = "Octave";
     help[HELP_OUT1]     = "Note";
     help[HELP_OUT2]     = "Scale";
     help[HELP_EXTRA1] = "";
@@ -306,6 +311,9 @@ private:
     int code_min = 0;
     int code_dim = 0;
     int code_no_match = 0;
+
+    int octave = 0;
+    int octaveCv = 0;
 
     int chord_quality = 0; // 0 = Maj, 1 = Min, 2 = Dim, 3 = No Match
 
@@ -335,6 +343,14 @@ private:
             gfxPrint(27, 27, "N/A");
         }
 
+        if (octave+octaveCv < 0) {
+            gfxPrint(49, 27, "-");
+        } else {
+            gfxPrint(49, 27, "+");
+        }
+
+        gfxPrint(56, 27, abs(octave+octaveCv));
+
         // Draw Voltage Selection Values
         gfxPrint(0, 40, "I:");
         gfxPrint(14, 40, voltage_maj);
@@ -354,12 +370,14 @@ private:
         } else if (cursor == 1) {
             gfxCursor(27, 23, 27);
         } else if (cursor == 2) {
-           gfxCursor(14, 48, 14);
+            gfxCursor(49, 35, 28);
         } else if (cursor == 3) {
-            gfxCursor(44, 48, 14);
+           gfxCursor(14, 48, 14);
         } else if (cursor == 4) {
-            gfxCursor(14, 60, 14);
+            gfxCursor(44, 48, 14);
         } else if (cursor == 5) {
+            gfxCursor(14, 60, 14);
+        } else if (cursor == 6) {
             gfxCursor(44, 60, 14);
         } 
     }
